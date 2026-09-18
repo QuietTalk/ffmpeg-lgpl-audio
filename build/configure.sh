@@ -16,6 +16,7 @@ set -euo pipefail
   --enable-static \
   --disable-shared \
   --enable-small \
+  --extra-ldflags="-static" \
   --enable-libvorbis \
   --enable-libopus \
   --enable-encoder=libvorbis,libopus,pcm_s16le \
@@ -26,3 +27,4 @@ set -euo pipefail
   --enable-filter=loudnorm,aresample,anull,pan \
   --enable-parser=opus,vorbis \
   --enable-bsf=null
+
