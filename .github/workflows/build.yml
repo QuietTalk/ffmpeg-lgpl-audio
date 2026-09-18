@@ -26,7 +26,7 @@ jobs:
           - os: ubuntu-24.04-arm
             target: linux-aarch64
             build_script: build/build-linux.sh
-          - os: macos-13
+          - os: macos-15-intel
             target: macos-x86_64
             build_script: build/build-macos.sh
           - os: macos-14
@@ -86,11 +86,21 @@ jobs:
         working-directory: ffmpeg-src
         run: bash ../${{ matrix.build_script }}
 
-      - name: Verify license
+      - name: Verify license (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           ./ffmpeg-src/ffmpeg -version | head -1
           ./ffmpeg-src/ffmpeg -version | grep -q "disable-gpl" \
+            && echo "OK: LGPL build" \
+            || (echo "FAIL: not LGPL" && exit 1)
+
+      - name: Verify license (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          ./ffmpeg-src/ffmpeg.exe -version | head -1
+          ./ffmpeg-src/ffmpeg.exe -version | grep -q "disable-gpl" \
             && echo "OK: LGPL build" \
             || (echo "FAIL: not LGPL" && exit 1)
 
