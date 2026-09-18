@@ -18,7 +18,6 @@ set -euo pipefail
   --enable-small \
   --enable-libvorbis \
   --enable-libopus \
-  --enable-libebur128 \
   --enable-encoder=libvorbis,libopus,pcm_s16le \
   --enable-decoder=pcm_s16le \
   --enable-muxer=ogg,wav \

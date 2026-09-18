@@ -45,13 +45,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential pkg-config yasm nasm \
-            libvorbis-dev libopus-dev libebur128-dev
+            libvorbis-dev libopus-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install pkg-config yasm nasm \
-            libvorbis opus libebur128
+            libvorbis opus
 
       - name: Setup MSYS2 (Windows)
         if: runner.os == 'Windows'
@@ -66,7 +66,6 @@ jobs:
             mingw-w64-x86_64-nasm
             mingw-w64-x86_64-libvorbis
             mingw-w64-x86_64-opus
-            mingw-w64-x86_64-libebur128
 
       - name: Download FFmpeg source
         shell: bash
