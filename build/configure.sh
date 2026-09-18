@@ -24,7 +24,7 @@ set -euo pipefail
   --enable-encoder=libvorbis,libopus,pcm_s16le \
   --enable-decoder=pcm_s16le \
   --enable-muxer=ogg,wav \
-  --enable-demuxer=s16le,wav \
+  --enable-demuxer=pcm_s16le,wav \
   --enable-protocol=file,pipe \
   --enable-filter=loudnorm,aresample,anull,pan \
   --enable-parser=opus,vorbis \
