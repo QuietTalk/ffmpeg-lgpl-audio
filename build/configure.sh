@@ -16,14 +16,15 @@ set -euo pipefail
   --enable-static \
   --disable-shared \
   --enable-small \
-  --extra-ldflags="-static" \
   --pkg-config-flags="--static" \
+  --extra-cflags="${EXTRA_CFLAGS:-}" \
+  --extra-ldflags="${EXTRA_LDFLAGS:-}" \
   --enable-libvorbis \
   --enable-libopus \
   --enable-encoder=libvorbis,libopus,pcm_s16le \
   --enable-decoder=pcm_s16le \
   --enable-muxer=ogg,wav \
-  --enable-demuxer=wav \
+  --enable-demuxer=s16le,wav \
   --enable-protocol=file,pipe \
   --enable-filter=loudnorm,aresample,anull,pan \
   --enable-parser=opus,vorbis \
