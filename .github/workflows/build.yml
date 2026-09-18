@@ -1,0 +1,137 @@
+name: Build FFmpeg LGPL Audio
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FFMPEG_VERSION: "9.0.1"
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux-x86_64
+            build_script: build/build-linux.sh
+          - os: ubuntu-24.04-arm
+            target: linux-aarch64
+            build_script: build/build-linux.sh
+          - os: macos-13
+            target: macos-x86_64
+            build_script: build/build-macos.sh
+          - os: macos-14
+            target: macos-aarch64
+            build_script: build/build-macos.sh
+          - os: windows-latest
+            target: windows-x86_64
+            build_script: build/build-windows.sh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config yasm nasm \
+            libvorbis-dev libopus-dev libebur128-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install pkg-config yasm nasm \
+            libvorbis opus libebur128
+
+      - name: Setup MSYS2 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >-
+            base-devel
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-yasm
+            mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-libvorbis
+            mingw-w64-x86_64-opus
+            mingw-w64-x86_64-libebur128
+
+      - name: Download FFmpeg source
+        shell: bash
+        run: |
+          curl -LO "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz"
+          tar -xf "ffmpeg-${FFMPEG_VERSION}.tar.xz"
+          mv "ffmpeg-${FFMPEG_VERSION}" ffmpeg-src
+
+      - name: Build FFmpeg (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        working-directory: ffmpeg-src
+        run: bash ../${{ matrix.build_script }}
+
+      - name: Build FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        working-directory: ffmpeg-src
+        run: bash ../${{ matrix.build_script }}
+
+      - name: Verify license
+        shell: bash
+        run: |
+          ./ffmpeg-src/ffmpeg -version | head -1
+          ./ffmpeg-src/ffmpeg -version | grep -q "disable-gpl" \
+            && echo "OK: LGPL build" \
+            || (echo "FAIL: not LGPL" && exit 1)
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp ffmpeg-src/ffmpeg dist/ffmpeg
+          cp LICENSE.md dist/ 2>/dev/null || true
+          cd dist
+          tar czf ../ffmpeg-${{ matrix.target }}.tar.gz ffmpeg
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          mkdir -p dist
+          cp ffmpeg-src/ffmpeg.exe dist/ffmpeg.exe
+          cd dist
+          tar czf ../ffmpeg-${{ matrix.target }}.tar.gz ffmpeg.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ matrix.target }}
+          path: ffmpeg-${{ matrix.target }}.tar.gz
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
